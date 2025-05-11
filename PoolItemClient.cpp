@@ -22,7 +22,7 @@ CPoolItemClient::CPoolItemClient(int sk) : CPoolItem(sk) {
 CPoolItemClient::~CPoolItemClient() {
 }
 
-/*обработка для чтения данных. возвращает ошибку если чтение не удалось или нет соединения.*/
+/*обработка входящих пакетов.*/
 bool CPoolItemClient::evRead() {
 	int size, type, r;
 
