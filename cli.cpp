@@ -7,6 +7,7 @@
 
 int sock;
 
+/*функция отправляет пакет с заголовком на сервер.*/
 void sendPacket(int type, const void *data, int size) {
 	char buf[65536];
 	int r;
@@ -25,20 +26,25 @@ int main() {
 	int inDataSize, r, type, size;
 	char buf[65536];
 	char str[] = "andr2\x00""1\x00Kenny";
-
+	
+	/*создание сокета.*/
 	sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 	inDataSize = 0;
 
+	/*насторойка адреса.*/
 	addr.sin_family = AF_INET;
 	inet_aton("127.0.0.1", &addr.sin_addr);
 	addr.sin_port = htons(4000);
 
+	/*подключение к серверу и сразу проверка.*/
 	if (connect(sock, (struct sockaddr *)&addr, sizeof(addr))) {
 		printf("cli connect error\n");
 		return 1;
 	}
 
 	sendPacket(2, str, sizeof(str)-1);
+
+	/*прием данных с сервера и удаление ненужного пакета из буфера.*/
 	while (true) {
 		r = recv(sock, buf+inDataSize, sizeof(buf)-inDataSize, 0);
 		printf("recv(%d) = %d\n", sock, r);
