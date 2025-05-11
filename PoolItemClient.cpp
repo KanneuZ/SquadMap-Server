@@ -1,5 +1,6 @@
 #include "server.h"
 
+/*маски для быстрого изменения.*/
 #define GROUP_MASK_CHANGE_NAME	 1
 #define GROUP_MASK_CHANGE_LEAD	 2
 #define GROUP_MASK_CHANGE_STAT	 4
@@ -10,16 +11,18 @@
 #define MEMBER_MASK_CHANGE_MAKE_LEAD 		 4
 #define MEMBER_MASK_CHANGE_STAT	 			 8
 
-
+/*конструктор.*/
 CPoolItemClient::CPoolItemClient(int sk) : CPoolItem(sk) {
 	inDataSize = 0;
 	userId = 0;
 	fPendingClose = false;
 }
 
+/*деконструктор.*/
 CPoolItemClient::~CPoolItemClient() {
 }
 
+/*обработка для чтения данных. возвращает ошибку если чтение не удалось или нет соединения.*/
 bool CPoolItemClient::evRead() {
 	int size, type, r;
 
@@ -56,6 +59,7 @@ bool CPoolItemClient::evRead() {
 	return true;
 }
 
+/*обработка для записи данных. после взятия из буфера данные удаляются.*/
 bool CPoolItemClient::evWrite() {
 	int r, offset, size;
 
@@ -69,6 +73,7 @@ bool CPoolItemClient::evWrite() {
 	return true;
 }
 
+/*анализ пакета???*/
 bool CPoolItemClient::parsePacket(int type, int size) {
 	char *body = buf+3;
 
@@ -92,6 +97,7 @@ bool CPoolItemClient::parsePacket(int type, int size) {
 	return true;
 }
 
+/*отправка пакета клиенту.*/
 void CPoolItemClient::sendPacket(int type, const void *buf, int size) {
 	int offset, i, r;
 	char buf2[65536];
@@ -118,6 +124,7 @@ void CPoolItemClient::sendPacket(int type, const void *buf, int size) {
 	// if (errno == EAGAIN) return;
 }
 
+/*чтение данных из пакета.*/
 bool readString(std::string &str, const char *&body, const char *end) {
 	const char *st = body;
 	if (body >= end) return false;
@@ -129,6 +136,7 @@ bool readString(std::string &str, const char *&body, const char *end) {
 	return true;
 }
 
+/*почему рид аррей какое тут блтьб чтение массива и где*/
 bool readArray(std::vector<int> &vec, char *arr) {
 	char *ptr;
 
@@ -149,6 +157,7 @@ bool readArray(std::vector<int> &vec, char *arr) {
 	return true;
 }
 
+/*обработка ошибок для регистрации и отправка результата к клиенту.*/
 bool CPoolItemClient::PKTUserReg(const char *body, int size) {
 	std::string login, password, name;
 	char error1[] = "\x01Неправильный пакет.";
@@ -188,6 +197,7 @@ bool CPoolItemClient::PKTUserReg(const char *body, int size) {
 	return true;
 }
 
+/*обработка ошибок для входа пользователя и отправка полученной информации к клиенту.*/
 bool CPoolItemClient::PKTUserLogin(const char *body, int size) {
 	std::string login, password;
 	char error1[] = "\x01Неправильный пакет.";
@@ -245,6 +255,7 @@ bool CPoolItemClient::PKTUserLogin(const char *body, int size) {
 	return true;
 }
 
+/*создание группы и обработка ошибок.*/
 bool CPoolItemClient::PKTGroupCreate(const char *body, int size) {
 	std::string name, password;
 	char error1[] = "\x01Неправильный пакет.";
@@ -283,6 +294,7 @@ bool CPoolItemClient::PKTGroupCreate(const char *body, int size) {
 	return true;
 }
 
+/*вход в группу и обработка ошибок.*/
 bool CPoolItemClient::PKTGroupJoin(const char *body, int size) {
 	std::string name, password;
 	char error1[] = "\x01Неправильный пакет.";
@@ -325,6 +337,7 @@ bool CPoolItemClient::PKTGroupJoin(const char *body, int size) {
 	return true;
 }
 
+/*обновление информации о группе*/
 bool CPoolItemClient::PKTGroupInfo() {
 	std::vector<int> groupIds;
 	PGresult *res;
@@ -341,6 +354,7 @@ bool CPoolItemClient::PKTGroupInfo() {
 	return true;
 }
 
+/*обновление информации о членах группы??*/
 bool CPoolItemClient::PKTGroupMemberUpdate(int groupId, const char *grName, int leadId, int memberId, unsigned char flgs, const char *str) {
 	char packetBuf[65536];
 	PGresult *res;
@@ -375,7 +389,7 @@ bool CPoolItemClient::PKTGroupMemberUpdate(int groupId, const char *grName, int 
 	sendToAll(ids, PKT_USER_GROUPINFO, packetBuf, size-1);
 	return true;
 }
-
+ /*обновление информации о прайм группе*/
 bool CPoolItemClient::PKTSingleGroupUpdate(int grId) {
 	char packetBuf[65536];
 	PGresult *res;
@@ -423,6 +437,7 @@ bool CPoolItemClient::PKTSingleGroupUpdate(int grId) {
 	return true;
 }
 
+/*проверка и отправка координаты метки всем в группе.*/
 bool CPoolItemClient::PKTSendCoordsToAll(const char *body, int size) {
 	PGresult *res;
 	int count;
@@ -466,6 +481,7 @@ bool CPoolItemClient::PKTSendCoordsToAll(const char *body, int size) {
 	return true;
 }
 
+/*проверка и добавление метки на карту.*/
 bool CPoolItemClient::PKTAddMarker(const char *body, int size) {
 	char error1[] = "\x01Неправильный пакет.";
 	const char *end = body + size;
@@ -532,6 +548,7 @@ bool CPoolItemClient::PKTAddMarker(const char *body, int size) {
 	return true;
 }
 
+/*???информация о метках???*/
 bool CPoolItemClient::PKTMarkersInfo() {
 	std::vector<int> markerIds;
 	PGresult *res;
@@ -566,6 +583,7 @@ bool CPoolItemClient::PKTMarkersInfo() {
 }
 
 // PKT_GROUP_CHANGE_LEAD
+/*проверка ошибок и передача лидера.*/
 bool CPoolItemClient::PKTGroupChangeLead(const char *body, int size) {
 	char error1[] = "\x01Неправильный пакет.";
 	char error2[] = "\x02Такой группы не существует.";
@@ -619,6 +637,7 @@ bool CPoolItemClient::PKTGroupChangeLead(const char *body, int size) {
 	return true;
 }
 
+/*проверка ошибок и изменение прайм группы.*/
 bool CPoolItemClient::PKTChangePrimGr(const char *body, int size) {
 	char error1[] = "\x01Неправильный пакет.";
 	char error2[] = "\x02Такого пользователя не существует или он не состоит в данной группе.";
@@ -657,6 +676,7 @@ bool CPoolItemClient::PKTChangePrimGr(const char *body, int size) {
 }
 
 // PKT_GROUP_EXIT
+/*выход из группы.*/
 bool CPoolItemClient::PTKExitGr(const char *body, int size) {
 	char error1[] = "\x01Неправильный пакет.";
 	PGresult *res, *res1;
@@ -706,6 +726,7 @@ bool CPoolItemClient::PTKExitGr(const char *body, int size) {
 	return true;
 }
 
+/*проверка ошибок и удаление из группы участника.*/
 bool CPoolItemClient::PKTGroupKick(const char *body, int size) {
 	char error1[] = "\x01Неправильный пакет.";
 	char error2[] = "\x02Что-то пошло не так!";
@@ -743,6 +764,7 @@ bool CPoolItemClient::PKTGroupKick(const char *body, int size) {
 }
 
 // PKT_MARKER_REM
+/*проверка ошибок и удаление метки с карты.*/
 bool CPoolItemClient::PKTDeleteMarker(const char *body, int size) {
 	char error1[] = "\x01Неправильный пакет.";
 	char error2[] = "\x02Неправильный тип данных.";
