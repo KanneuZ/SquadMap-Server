@@ -4,6 +4,7 @@ CPool pool;
 PGconn *dbconn=0;
 
 int main(int argc, char const *argv[]) {
+	/*подключение к базе данных.*/
 	dbconn=PQconnectdb(PGLOGIN);
 	if (PQstatus(dbconn) != CONNECTION_OK) {
 		printf("Ошибка подключения к БД\n");
@@ -12,29 +13,35 @@ int main(int argc, char const *argv[]) {
 
 	signal(SIGPIPE, SIG_IGN);
 
+	/*создаем пул соединений.*/
 	pool.create();
 
+	/*создаем сокет для прослушивания.*/
 	CPoolItemListen *lst = new CPoolItemListen(SERVER_PORT);
 	pool.add(lst, EPOLLIN);
 
-	while(true) pool.wait();
+	while(true) pool.wait(); /*ожидаем событие.*/
 
-	if (dbconn) PQfinish(dbconn);
+	if (dbconn) PQfinish(dbconn); /*очистка.*/
 	return 0;
 }
 
+/*добавление элемента в пул соединений.*/
 void addToPool(CPoolItem *item, __uint32_t ev) {
 	pool.add(item, ev);
 }
 
+/*добавление клиента в список.*/
 void addToList(CPoolItemClient *item) {
 	pool.addToList(item);
 }
 
+/*пересылаем пакет всем клиентам по id.*/
 void sendToAll(std::map<int, int> ids, int type, void *body, int size) {
 	pool.sendPacketsToAll(ids, type, body, size);
 }
 
+/*установка не блокирующего режима.*/
 void SetNonBlock(int fd) {
 	fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0)|O_NONBLOCK);
 }
