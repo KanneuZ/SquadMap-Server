@@ -1,16 +1,20 @@
 #include "server.h"
 #include "Pool.h"
 
+/*конструктор*/
 CPool::CPool() {
 }
 
+/*деконструктор*/
 CPool::~CPool() {
 }
 
+/*проверка на то, создалось ли???*/
 bool CPool::create() {
 	return (fdPool = epoll_create(16)) >= 0;
 }
 
+/*добавляет элемент.*/
 void CPool::add(CPoolItem *item, __uint32_t ev) {
 	struct epoll_event ep_ev;
 
@@ -23,6 +27,7 @@ void CPool::add(CPoolItem *item, __uint32_t ev) {
 	perror("epoll_ctl");
 }
 
+/*удаляет элемент.*/
 void CPool::remove(CPoolItem *item) {
 	printf("remove socket = %d\n", item->getSock());
 	epoll_ctl(fdPool, EPOLL_CTL_DEL, item->getSock(), 0);
@@ -31,6 +36,7 @@ void CPool::remove(CPoolItem *item) {
 	delete item;
 }
 
+/*отправляет пакеты всем выбранным по ID клиентам.*/
 void CPool::sendPacketsToAll(std::map<int, int> ids, int type, void *body, int size) {
 	for (auto iter = items.begin(); iter != items.end(); iter++) {
 		if ((*iter)->getUserId() && ids.count((*iter)->getUserId())) {
@@ -39,6 +45,7 @@ void CPool::sendPacketsToAll(std::map<int, int> ids, int type, void *body, int s
 	}
 }
 
+/*ожидает события в течение некоторого времени и проверяем и обрабатываем*/
 void CPool::wait() {
 	struct epoll_event ep_ev[64];
 	CPoolItem *itm;
