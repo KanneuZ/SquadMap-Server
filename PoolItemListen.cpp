@@ -1,14 +1,16 @@
 #include "server.h"
 #include "PoolItemListen.h"
 
-
+/*конструктор.*/
 CPoolItemListen::CPoolItemListen(int port) : CPoolItem() {
 	int r = create(port);
 	printf("r = %d\n", r);
 }
 
+/*деконструктор.*/
 CPoolItemListen::~CPoolItemListen() {}
 
+/*создание сокета. вовращает true при успешном создании.*/
 bool CPoolItemListen::create(int port) {
 	struct sockaddr_in addr;
 	int true_value = 1;
@@ -29,6 +31,7 @@ bool CPoolItemListen::create(int port) {
 	return true;
 }
 
+/*обработка чтения события.*/
 bool CPoolItemListen::evRead(){
 	int inSock;
 	struct sockaddr_in addr;
@@ -50,10 +53,12 @@ bool CPoolItemListen::evRead(){
 	return true;
 }
 
+/*обработка для записи. всегда возвращает true тк не используется.*/
 bool CPoolItemListen::evWrite(){
 	return true;
 }
 
+/*отправка пакета. не используется.*/
 void CPoolItemListen::sendPacket(int type, const void *buf, int size) {
 	return;
 }
